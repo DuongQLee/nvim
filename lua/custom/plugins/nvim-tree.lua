@@ -83,7 +83,7 @@ return {
             symlink = '', -- Symlink icon
             folder = {
               default = '', -- Default folder icon
-              open = 'folderopen', -- Icon for an open folder
+              open = '', -- Icon for an open folder
               empty = '󰜌', -- Icon for an empty folder
               empty_open = '󰜌', -- Icon for an open empty folder
               symlink = '', -- Symlink folder icon
