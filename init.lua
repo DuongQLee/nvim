@@ -515,7 +515,6 @@ require('lazy').setup({
             local server = servers[server_name] or {}
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
-            print('LSP Setup called for:', server_name)
           end,
         },
       }
@@ -535,8 +534,6 @@ require('lazy').setup({
         end,
         desc = 'Format C/C++/ObjC/CUDA files using LSP before saving',
       })
-
-      print 'LSP configuration loaded.'
     end,
   },
 
