@@ -4,16 +4,10 @@ return {
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter', -- Load when entering insert mode
     dependencies = {
-      -- Source for LSP completions
       'hrsh7th/cmp-nvim-lsp',
-
-      -- Source for buffer words
       'hrsh7th/cmp-buffer',
-
-      -- Source for file system paths
       'hrsh7th/cmp-path',
-
-      -- Snippet engine (choose one, LuaSnip is popular)
+      'hrsh7th/cmp-cmdline',
       'L3MON4D3/LuaSnip',
       -- Source for integrating LuaSnip with nvim-cmp
       'saadparwaiz1/cmp_luasnip',
@@ -29,7 +23,7 @@ return {
       -- Basic configuration (see step 2)
       local cmp = require 'cmp'
       local lspkind = require 'lspkind' -- If using lspkind
-
+      local luasnip = require('luasnip')
       cmp.setup {
         snippet = {
           -- REQUIRED - you must specify a snippet engine
@@ -46,28 +40,29 @@ return {
         mapping = cmp.mapping.preset.insert {
           ['<C-b>'] = cmp.mapping.scroll_docs(-4),
           ['<C-f>'] = cmp.mapping.scroll_docs(4),
-          ['<C-Space>'] = cmp.mapping.complete(), -- Trigger completion
-          ['<C-e>'] = cmp.mapping.abort(), -- Close completion
-          ['<CR>'] = cmp.mapping.confirm { select = true }, -- Accept selected item
-          -- Navigate completion menu
+          ['<C-Space>'] = cmp.mapping.complete(),             -- Trigger completion
+          ['<C-e>'] = cmp.mapping.abort(),                    -- Close completion
+          ['<C-y>'] = cmp.mapping.confirm({ select = true }), -- Accept selected item using Ctrl+y
+          ['<C-j>'] = cmp.mapping.select_next_item(),         -- Next suggestion using Ctrl+j
+          ['<C-k>'] = cmp.mapping.select_prev_item(),         -- Previous suggestion using Ctrl+k
           ['<Tab>'] = cmp.mapping(function(fallback)
             if cmp.visible() then
               cmp.select_next_item()
-            elseif require('luasnip').expand_or_jumpable() then
-              require('luasnip').expand_or_jump()
+            elseif luasnip.expand_or_jumpable() then -- Check if we can jump in a snippet
+              luasnip.expand_or_jump()
             else
               fallback()
             end
-          end, { 'i', 's' }), -- i for insert mode, s for select mode
+          end, { "i", "s" }), -- "i" for insert mode, "s" for select mode (visual selection in completion)
           ['<S-Tab>'] = cmp.mapping(function(fallback)
             if cmp.visible() then
               cmp.select_prev_item()
-            elseif require('luasnip').jumpable(-1) then
-              require('luasnip').jump(-1)
+            elseif luasnip.jumpable(-1) then -- Check if we can jump back in a snippet
+              luasnip.jump(-1)
             else
               fallback()
             end
-          end, { 'i', 's' }),
+          end, { "i", "s" }),
         },
         sources = cmp.config.sources({
           { name = 'nvim_lsp' },
@@ -81,8 +76,8 @@ return {
         -- Optional: Add icons using lspkind
         formatting = {
           format = lspkind.cmp_format {
-            mode = 'symbol_text', -- show only symbol annotations
-            maxwidth = 50, -- prevent the popup from becoming too wide
+            mode = 'symbol_text',  -- show only symbol annotations
+            maxwidth = 50,         -- prevent the popup from becoming too wide
             ellipsis_char = '...', -- when popup menu exceed maxwidth, the truncated part would show ellipsis_char instead
             -- Show source name for each completion item
             -- Available options are: 'nvim_lsp', 'luasnip', 'buffer', 'path'
@@ -102,7 +97,8 @@ return {
         },
       })
       cmp.setup.cmdline(':', {
-        mapping = cmp.mapping.preset.cmdline(),
+        mapping = cmp.mapping.preset.cmdline(
+        ),
         sources = cmp.config.sources({
           { name = 'path' },
         }, {

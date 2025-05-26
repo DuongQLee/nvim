@@ -1,121 +1,282 @@
--- File: lua/plugins/nvim-tree.lua
--- Configuration for nvim-tree.lua
-
 return {
-  'nvim-tree/nvim-tree.lua',
-  version = '*', -- Or pin to a specific Git tag/branch for stability, e.g., "v1.2.3"
-  lazy = false, -- Load nvim-tree on startup. Set to true if you prefer to load it on command/event.
+  "nvim-tree/nvim-tree.lua",
+  version = "*",                   -- Pin to a specific version if desired, or use "*" for latest
+  lazy = false,                    -- Load nvim-tree on startup, or set to true and trigger on an event/command
   dependencies = {
-    'nvim-tree/nvim-web-devicons', -- Optional, but recommended for file icons
+    "nvim-tree/nvim-web-devicons", -- Optional, for file icons
   },
   config = function()
-    local nvimtree = require 'nvim-tree'
+    -- Disable netrw completely if you only want to use nvim-tree
+    vim.g.loaded_netrw = 1
+    vim.g.loaded_netrwPlugin = 1
 
-    -- Optional: If you have nvim-web-devicons and want to ensure it's set up
-    -- (though nvim-tree often handles this if it's a dependency)
-    local devicons_status_ok, devicons = pcall(require, 'nvim-web-devicons')
-    if devicons_status_ok then
-      devicons.setup {
-        -- Your nvim-web-devicons specific settings (if any)
-        -- For example, override default icons:
-        -- override = {
-        --   cs = {
-        --     icon = "󰌛",
-        --     color = "#596706",
-        --     name = "Cs"
-        --   }
-        -- }
-      }
-    end
+    -- Set highlight group for devicons
+    -- This is important for nvim-web-devicons to work correctly
+    -- vim.cmd([[highlight NvimTreeFolderIcon guibg=NONE]]) -- Example, adjust as needed
 
-    nvimtree.setup {
-      -- When true, this module will prevent netrw from loading to prevent conflicts
-      disable_netrw = true,
-      -- When true, this module will hijack netrw buffers. Enabling this is mostly effectively
-      -- the same as `disable_netrw` but can prevent some subtle effects.
+    local nvimtree = require("nvim-tree")
+    local api = require("nvim-tree.api")
+    -- Basic setup
+    nvimtree.setup({
+      on_attach = "default",
+      hijack_cursor = false,
+      auto_reload_on_write = true,
+      disable_netrw = false,
       hijack_netrw = true,
-
-      -- Update the focused file on BufEnter, if the current buffer is in nvim-tree.
-      update_focused_file = {
-        enable = true,
-        -- Update the root directory of nvim-tree to the CWD of the buffer.
-        update_cwd = true,
+      hijack_unnamed_buffer_when_opening = false,
+      root_dirs = {},
+      prefer_startup_root = false,
+      sync_root_with_cwd = false,
+      reload_on_bufenter = false,
+      respect_buf_cwd = false,
+      select_prompts = false,
+      sort = {
+        sorter = "name",
+        folders_first = true,
+        files_first = false,
       },
-
-      -- Keybindings for actions in the NvimTree window
       view = {
-        adaptive_size = true, -- Adjusts NvimTree window size to content
-        width = 50, -- Default width of the NvimTree window
-        side = 'right', -- Can be 'left' or 'right'
-        -- Preserve the cursor position when switching buffers
-        preserve_window_proportions = true,
-        -- Hide numbers, relative numbers, and signcolumn for a cleaner look
+        adaptive_size = true,
+        centralize_selection = true,
+        cursorline = true,
+        debounce_delay = 15,
+        side = "right",
+        preserve_window_proportions = false,
         number = false,
         relativenumber = false,
-        signcolumn = 'no', -- Or "yes" if you want to see diagnostic/git markers here
+        signcolumn = "yes",
+        -- width = 100,
+        -- float = {
+        --   enable = false,
+        --   quit_on_focus_loss = true,
+        --   open_win_config = {
+        --     relative = "editor",
+        --     border = "rounded",
+        --     width = 30,
+        --     height = 30,
+        --     row = 1,
+        --     col = 1,
+        --   },
+        -- },
       },
-
-      -- Options for rendering the NvimTree
       renderer = {
-        group_empty = true, -- Show empty folders
-        highlight_git = true, -- Highlight files based on Git status
-        highlight_opened_files = 'none', -- Options: "none", "icon", "name", "all"
+        add_trailing = false,
+        group_empty = false,
+        full_name = false,
+        root_folder_label = ":~:s?$?/..?",
+        indent_width = 2,
+        special_files = { "Cargo.toml", "Makefile", "README.md", "readme.md" },
+        hidden_display = "none",
+        symlink_destination = true,
+        decorators = { "Git", "Open", "Hidden", "Modified", "Bookmark", "Diagnostics", "Copied", "Cut", },
+        highlight_git = "none",
+        highlight_diagnostics = "none",
+        highlight_opened_files = "none",
+        highlight_modified = "none",
+        highlight_hidden = "none",
+        highlight_bookmarks = "none",
+        highlight_clipboard = "name",
         indent_markers = {
-          enable = true, -- Show indentation markers
-          -- icons = {
-          --   corner = "└ ",
-          --   edge = "│ ",
-          --   item = "│ ",
-          --   bottom = "─ ",
-          --   none = "  ",
-          -- },
+          enable = false,
+          inline_arrows = true,
+          icons = {
+            corner = "└",
+            edge = "│",
+            item = "│",
+            bottom = "─",
+            none = " ",
+          },
         },
         icons = {
+          web_devicons = {
+            file = {
+              enable = true,
+              color = true,
+            },
+            folder = {
+              enable = false,
+              color = true,
+            },
+          },
+          git_placement = "before",
+          modified_placement = "after",
+          hidden_placement = "after",
+          diagnostics_placement = "signcolumn",
+          bookmarks_placement = "signcolumn",
+          padding = " ",
+          symlink_arrow = " ➛ ",
           show = {
             file = true,
             folder = true,
             folder_arrow = true,
             git = true,
+            modified = true,
+            hidden = false,
+            diagnostics = true,
+            bookmarks = true,
           },
-          -- Requires a Nerd Font installed and configured in your terminal
           glyphs = {
-            default = '󰈚', -- Default icon
-            symlink = '', -- Symlink icon
+            default = "",
+            symlink = "",
+            bookmark = "󰆤",
+            modified = "●",
+            hidden = "󰜌",
             folder = {
-              default = '', -- Default folder icon
-              open = 'folderopen', -- Icon for an open folder
-              empty = '󰜌', -- Icon for an empty folder
-              empty_open = '󰜌', -- Icon for an open empty folder
-              symlink = '', -- Symlink folder icon
+              arrow_closed = "",
+              arrow_open = "",
+              default = "",
+              open = "",
+              empty = "",
+              empty_open = "",
+              symlink = "",
+              symlink_open = "",
             },
             git = {
-              unstaged = '󰄱', -- Git unstaged icon
-              staged = '✓', -- Git staged icon
-              unmerged = '', -- Git unmerged icon
-              renamed = '➜', -- Git renamed icon
-              untracked = 'U', -- Git untracked icon (or use "★" or "?")
-              deleted = '', -- Git deleted icon
-              ignored = '◌', -- Git ignored icon
+              unstaged = "✗",
+              staged = "✓",
+              unmerged = "",
+              renamed = "➜",
+              untracked = "★",
+              deleted = "",
+              ignored = "◌",
             },
           },
         },
       },
-
-      -- Filtering options
-      filters = {
-        dotfiles = false, -- Set to true to show dotfiles by default
-        custom = { '.git', 'node_modules', '.cache' }, -- Hide these folders/files
-        exclude = {}, -- List of regex patterns to exclude
+      hijack_directories = {
+        enable = true,
+        auto_open = true,
       },
-
-      -- Git integration options
+      update_focused_file = {
+        enable = false,
+        update_root = {
+          enable = false,
+          ignore_list = {},
+        },
+        exclude = false,
+      },
+      system_open = {
+        cmd = "",
+        args = {},
+      },
       git = {
         enable = true,
-        ignore = true, -- Set to false to show gitignored files by default
+        show_on_dirs = true,
+        show_on_open_dirs = true,
+        disable_for_dirs = {},
         timeout = 400,
+        cygwin_support = false,
       },
-
-      -- Logging level (trace, debug, info, warn, error)
+      diagnostics = {
+        enable = false,
+        show_on_dirs = false,
+        show_on_open_dirs = true,
+        debounce_delay = 500,
+        severity = {
+          min = vim.diagnostic.severity.HINT,
+          max = vim.diagnostic.severity.ERROR,
+        },
+        icons = {
+          hint = "",
+          info = "",
+          warning = "",
+          error = "",
+        },
+      },
+      modified = {
+        enable = false,
+        show_on_dirs = true,
+        show_on_open_dirs = true,
+      },
+      filters = {
+        enable = true,
+        git_ignored = true,
+        dotfiles = false,
+        git_clean = false,
+        no_buffer = false,
+        no_bookmark = false,
+        custom = {},
+        exclude = {},
+      },
+      live_filter = {
+        prefix = "[FILTER]: ",
+        always_show_folders = true,
+      },
+      filesystem_watchers = {
+        enable = true,
+        debounce_delay = 50,
+        ignore_dirs = {
+          "/.ccls-cache",
+          "/build",
+          "/node_modules",
+          "/target",
+        },
+      },
+      actions = {
+        use_system_clipboard = true,
+        change_dir = {
+          enable = true,
+          global = false,
+          restrict_above_cwd = false,
+        },
+        expand_all = {
+          max_folder_discovery = 300,
+          exclude = {},
+        },
+        file_popup = {
+          open_win_config = {
+            col = 1,
+            row = 1,
+            relative = "cursor",
+            border = "shadow",
+            style = "minimal",
+          },
+        },
+        open_file = {
+          quit_on_open = false,
+          eject = true,
+          resize_window = true,
+          relative_path = true,
+          window_picker = {
+            enable = true,
+            picker = "default",
+            chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+            exclude = {
+              filetype = { "notify", "packer", "qf", "diff", "fugitive", "fugitiveblame" },
+              buftype = { "nofile", "terminal", "help" },
+            },
+          },
+        },
+        remove_file = {
+          close_window = true,
+        },
+      },
+      trash = {
+        cmd = "gio trash",
+      },
+      tab = {
+        sync = {
+          open = false,
+          close = false,
+          ignore = {},
+        },
+      },
+      notify = {
+        threshold = vim.log.levels.INFO,
+        absolute_path = true,
+      },
+      help = {
+        sort_by = "key",
+      },
+      ui = {
+        confirm = {
+          remove = true,
+          trash = true,
+          default_yes = false,
+        },
+      },
+      experimental = {
+      },
       log = {
         enable = false,
         truncate = false,
@@ -130,29 +291,26 @@ return {
           watcher = false,
         },
       },
+    })
 
-      -- Other settings
-      trash = { -- Send deleted files to trash instead of permanently deleting
-        cmd = 'trash', -- Requires 'trash-cli' to be installed (or 'gio trash' on Linux)
-        require_confirm = true,
-      },
-      live_filter = { -- Settings for live filtering
-        prefix = '[FILTER]: ',
-        always_show_folders = true,
-      },
-      -- Add any other specific nvim-tree options you need.
-      -- Refer to :help nvim-tree-setup for all available options.
-    }
+    -- Keymap to toggle nvim-tree
+    -- Set leader key if not already set (usually space)
+    -- vim.g.mapleader = " "
+    -- vim.g.maplocalleader = " "
 
-    -- Global keymaps to interact with NvimTree (outside the NvimTree window)
     local keymap = vim.keymap.set
-    local opts = { noremap = true, silent = true, desc = 'NvimTree' }
+    local opts = { noremap = true, silent = true }
 
-    keymap('n', '<C-n>', ':NvimTreeToggle<CR>', { desc = 'Toggle NvimTree explorer' })
-    keymap('n', '<C-b>', ':NvimTreeFocus<CR>', { desc = 'Focus NvimTree explorer' })
-    -- Example: Alternative toggle if you prefer Ctrl+n
-    -- keymap("n", "<C-n>", ":NvimTreeToggle<CR>", { desc = "Toggle NvimTree (alternative)" })
+    -- Toggle nvim-tree
+    keymap("n", "\\", function()
+      api.tree.toggle({ focus = true, find_file = true, })
+    end, opts)
 
-    print 'NvimTree setup complete with custom copy path keymaps.'
+    -- -- Focus nvim-tree (if open)
+    -- keymap("n", "<leader>E", ":NvimTreeFocus<CR>", opts)
+    -- -- Find current file in nvim-tree
+    -- keymap("n", "<leader>f", ":NvimTreeFindFile<CR>", opts)
+    -- -- Collapse all nodes
+    -- keymap("n", "<leader>c", ":NvimTreeCollapse<CR>", opts)
   end,
 }
