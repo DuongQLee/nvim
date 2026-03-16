@@ -1,5 +1,6 @@
 return { -- Main LSP Configuration
   'neovim/nvim-lspconfig',
+  version = 'v0.1.8', -- Pins the plugin to the last stable version (Fixes Nvim 0.11 crashes)
   dependencies = {
     { 'stevearc/conform.nvim', opts = {} }, -- Formatter
     {
@@ -12,13 +13,13 @@ return { -- Main LSP Configuration
         },
       },
     },
-    -- Mason setup (kept as is)
+    -- Mason setup
     { 'williamboman/mason.nvim', opts = {} },
     'williamboman/mason-lspconfig.nvim',
-    'WhoIsSethDaniel/mason-tool-installer.nvim', -- Installs tools based on `ensure_installed`
-    -- Fidget status updates (kept as is)
+    'WhoIsSethDaniel/mason-tool-installer.nvim',
+    -- Fidget status updates
     { 'j-hui/fidget.nvim', opts = {} },
-    -- Completion Engine setup (kept as is)
+    -- Completion Engine setup
     {
       'hrsh7th/nvim-cmp',
       dependencies = {
@@ -26,7 +27,6 @@ return { -- Main LSP Configuration
         'saadparwaiz1/cmp_luasnip',
         'hrsh7th/cmp-nvim-lsp',
         'hrsh7th/cmp-buffer',
-        'hrsh7th/cmp-path',
         'hrsh7th/cmp-path',
         'hrsh7th/cmp-cmdline',
       },
@@ -36,29 +36,22 @@ return { -- Main LSP Configuration
     require('conform').setup {
       formatters_by_ft = {
         lua = { 'stylua' },
-        python = { 'black', 'isort', 'yapf', 'ruff' },
+        python = { 'isort', 'black' },
         c = { 'clang-format' },
         cpp = { 'clang-format' },
       },
-      default_format_opts = {
-        lsp_format = 'fallback',
-      },
-      -- If this is set, Conform will run the formatter on save.
-      -- It will pass the table to conform.format().
-      -- This can also be a function that returns the table.
-      format_on_save = {
-        -- I recommend these options. See :help conform.format for details.
-        lsp_format = 'fallback',
-        timeout_ms = 500,
-      },
+      default_format_opts = { lsp_format = 'fallback' },
+      format_on_save = { lsp_format = 'fallback', timeout_ms = 3000 },
     }
 
-    -- LspAttach autocommand (Existing)
+    -- ==============================================================================
+    -- 🧠 LSP Keymaps & Autocommands
+    -- ==============================================================================
     vim.api.nvim_create_autocmd('LspAttach', {
       group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
       callback = function(event)
         local map = function(keys, func, desc, mode)
-          local effective_mode = mode or 'n' -- Default to 'n' if mode is nil
+          local effective_mode = mode or 'n'
           if type(desc) == 'string' then
             vim.keymap.set(effective_mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
           else
@@ -80,34 +73,14 @@ return { -- Main LSP Configuration
 
         local client = vim.lsp.get_client_by_id(event.data.client_id)
 
+        -- Format keymap
         if client and client:supports_method('textdocument/formatting', { bufnr = event.buf }) then
-          -- correctly use vim.keymap.set(mode, lhs, rhs, opts)
-          vim.keymap.set(
-            { 'n', 'v' }, -- mode(s): normal and visual
-            '<leader>f', -- lhs (left hand side): the key sequence to map
-            function() -- rhs (right hand side): the action to perform
-              vim.lsp.buf.format {
-                async = true,
-                timeout_ms = 2000,
-                bufnr = event.buf, -- format the current buffer attached to the lsp
-              }
-            end,
-            { -- opts: table of options for the keymap
-              desc = 'format document (lsp)', -- description for which-key or other plugins
-              noremap = true, -- non-recursive mapping
-              silent = true, -- don't show the command in the command line
-              buffer = event.buf, -- make this keymap buffer-local
-            }
-          )
-          print('formatting keymap (<leader>f) set for buffer:', event.buf)
-        else
-          if not client then
-            print('lsp client not found for client_id:', event.data.client_id, 'in buffer:', event.buf)
-          else
-            print('client for buffer', event.buf, 'does not support textdocument/formatting.')
-          end
+          vim.keymap.set({ 'n', 'v' }, '<leader>f', function()
+            require('conform').format { async = true, lsp_format = 'fallback' }
+          end, { desc = 'format document (conform/lsp)', noremap = true, silent = true, buffer = event.buf })
         end
 
+        -- Document Highlight autocommands
         local function client_supports_method(client_instance, method, bufnr)
           if not client_instance then
             return false
@@ -138,23 +111,18 @@ return { -- Main LSP Configuration
           })
         end
 
+        -- Inlay hints
         if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
           map('<leader>th', function()
             vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
           end, '[T]oggle Inlay [H]ints')
         end
-
-        -- Auto format on save
-        -- if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_formatting, event.buf) then
-        --   vim.api.nvim_create_autocmd('BufWritePre', {
-        --     callback = function(args)
-        --       vim.lsp.buf.format { bufnr = args.buf, id = client.id }
-        --     end,
-        --   })
-        -- end
       end,
     })
 
+    -- ==============================================================================
+    -- 🎨 Diagnostic UI Configuration
+    -- ==============================================================================
     vim.diagnostic.config {
       severity_sort = true,
       float = { border = 'rounded', source = true, focusable = false, style = 'minimal' },
@@ -171,66 +139,85 @@ return { -- Main LSP Configuration
         source = 'if_many',
         spacing = 2,
         format = function(diagnostic)
-          local dm = {
-            [vim.diagnostic.severity.ERROR] = diagnostic.message,
-            [vim.diagnostic.severity.WARN] = diagnostic.message,
-            [vim.diagnostic.severity.INFO] = diagnostic.message,
-            [vim.diagnostic.severity.HINT] = diagnostic.message,
-          }
-          return dm[diagnostic.severity]
+          return diagnostic.message
         end,
       },
     }
 
-    local cmp = require 'cmp'
+    -- ==============================================================================
+    -- 🐍 Dynamic Python Environment Resolvers (Optimized for `uv` on macOS)
+    -- ==============================================================================
+    local function get_python_path()
+      if vim.env.VIRTUAL_ENV then
+        return vim.env.VIRTUAL_ENV .. '/bin/python'
+      end
+      -- Fallback to local `.venv` typically created by `uv`
+      local local_venv = vim.fn.getcwd() .. '/.venv/bin/python'
+      if vim.fn.filereadable(local_venv) == 1 then
+        return local_venv
+      end
+      -- Default macOS Python path fallback
+      return vim.fn.exepath 'python3' or vim.fn.exepath 'python' or 'python'
+    end
+
+    local function get_pylint_path()
+      if vim.env.VIRTUAL_ENV then
+        return vim.env.VIRTUAL_ENV .. '/bin/pylint'
+      end
+      -- Prioritize local project pylint to solve import errors
+      local local_pylint = vim.fn.getcwd() .. '/.venv/bin/pylint'
+      if vim.fn.filereadable(local_pylint) == 1 then
+        return local_pylint
+      end
+      -- Fallback to global/Mason pylint
+      return vim.fn.exepath 'pylint' or 'pylint'
+    end
+
+    -- ==============================================================================
+    -- 📡 LSP Servers Configuration
+    -- ==============================================================================
     local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-    -- #################################################
-    -- V V V V V MODIFIED `servers` TABLE V V V V V
-    -- #################################################
     local servers = {
       lua_ls = {
         settings = {
           Lua = {
-            format = {
-              enable = true,
-            },
+            diagnostics = { globals = { 'vim' } },
+            format = { enable = true },
             completion = { callSnippet = 'Replace' },
           },
         },
       },
       clangd = {},
-      pylsp = { -- Add pylsp configuration here
+      pylsp = {
         settings = {
           pylsp = {
             plugins = {
-              -- Configure the python executable for pylsp's jedi plugin
-              -- This tells pylsp's Jedi to use this specific Python environment
-              jedi = { -- pylsp uses 'jedi' as the key for its Jedi plugin settings
-                -- environment = '/home/ubuntu/framework/backend/modnn_npu/tt-moreh/tt_moreh_env', -- Path to venv root
-                python_path = '/home/ubuntu/framework/backend/modnn_npu/tt-moreh/tt_moreh_env/bin/python3.10', -- Or path to specific python executable
+              jedi = {
+                environment = get_python_path(),
                 enabled = true,
               },
-              -- You can also configure other pylsp plugins here if needed
               pylint = {
                 enabled = true,
-                -- If pylint is not in PATH of the python_path above, you might need:
-                -- executable = '/home/ubuntu/framework/backend/modnn_npu/tt-moreh/tt_moreh_env/bin/pylint',
+                executable = get_pylint_path(),
               },
               pyflakes = { enabled = true },
-              pycodestyle = { enabled = false }, -- Example: disabling a plugin
-              -- Add other pylsp plugin configurations as needed
+              pycodestyle = { enabled = false },
+              autopep8 = { enabled = false },
+              yapf = { enabled = false },
+              pyls_isort = { enabled = false },
             },
           },
         },
       },
     }
-    -- #################################################
-    -- ^ ^ ^ ^ ^ MODIFIED `servers` TABLE ^ ^ ^ ^ ^
-    -- #################################################
 
+    -- ==============================================================================
+    -- 💅 UI Tweaks (Colorscheme & Transparency)
+    -- ==============================================================================
     vim.cmd 'colorscheme onedark_vivid'
     vim.opt.termguicolors = true
+
     local function apply_transparency()
       local groups = {
         'Normal',
@@ -255,19 +242,25 @@ return { -- Main LSP Configuration
         vim.api.nvim_set_hl(0, group_name, { bg = 'NONE', ctermbg = 'NONE' })
       end
     end
+
     apply_transparency()
     local augroup_transparent = vim.api.nvim_create_augroup('MyTransparentHighlights', { clear = true })
     vim.api.nvim_create_autocmd('ColorScheme', { group = augroup_transparent, pattern = '*', callback = apply_transparency })
 
+    -- ==============================================================================
+    -- 🏗️ Mason Installer Integration
+    -- ==============================================================================
     local ensure_installed_lsp = vim.tbl_keys(servers or {})
-    -- Add other tools (linters, formatters) that are not LSPs but you want Mason to install
+
+    -- AUTO-INSTALL FORMATTERS AND LINTERS HERE
     local ensure_installed_others = {
       'stylua',
-      -- The jedi_language_server entry with specific pythonPath is not needed here
-      -- for configuring an already installed pylsp. Mason will install pylsp,
-      -- and pylsp itself will be configured via the `servers` table above.
+      'black',
+      'isort',
+      'clang-format',
+      'pylint',
     }
-    -- Combine LSP servers and other tools for mason-tool-installer
+
     local final_ensure_installed = {}
     for _, tool in ipairs(ensure_installed_lsp) do
       table.insert(final_ensure_installed, tool)
@@ -276,6 +269,7 @@ return { -- Main LSP Configuration
       table.insert(final_ensure_installed, tool)
     end
 
+    -- Clang diagnostic filter
     local function filter_diagnostics(diagnostic)
       if diagnostic.source == 'clang' then
         return false
@@ -288,16 +282,17 @@ return { -- Main LSP Configuration
       vim.lsp.diagnostic.on_publish_diagnostics(_, result, ctx, config)
     end, {})
 
+    -- Setup Mason Tools
     require('mason-tool-installer').setup { ensure_installed = final_ensure_installed }
 
+    -- Setup Mason LSP Config
     require('mason-lspconfig').setup {
       automatic_enable = true,
-      ensure_installed = {}, -- Let mason-tool-installer handle this.
+      ensure_installed = {},
       automatic_installation = false,
       handlers = {
         function(server_name)
-          local server_opts = servers[server_name] or {} -- Get specific settings from our 'servers' table
-          -- Ensure capabilities are merged correctly
+          local server_opts = servers[server_name] or {}
           server_opts.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server_opts.capabilities or {})
           require('lspconfig')[server_name].setup(server_opts)
         end,
