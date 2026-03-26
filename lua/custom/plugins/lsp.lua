@@ -189,6 +189,7 @@ return { -- Main LSP Configuration
         },
       },
       clangd = {},
+      html = {},
       pylsp = {
         settings = {
           pylsp = {
@@ -259,6 +260,7 @@ return { -- Main LSP Configuration
       'isort',
       'clang-format',
       'pylint',
+      'html',
     }
 
     local final_ensure_installed = {}

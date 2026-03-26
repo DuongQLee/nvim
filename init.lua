@@ -10,9 +10,9 @@ vim.opt.relativenumber = true
 vim.opt.number = true
 vim.opt.mouse = 'a'
 vim.opt.showmode = false
-vim.opt.foldmethod = 'indent'
-vim.opt.foldlevelstart = 99
-vim.opt.foldenable = true
+vim.opt.foldmethod = 'expr'
+vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+vim.opt.foldenable = false -- Disables folding by default when you open a file
 vim.opt.breakindent = true
 vim.opt.undofile = true
 vim.opt.ignorecase = true
@@ -265,3 +265,12 @@ vim.api.nvim_create_autocmd('BufWritePre', {
     vim.fn.setpos('.', save_cursor)
   end,
 })
+
+-- Makes the background of the sticky header slightly different
+vim.api.nvim_set_hl(0, 'TreesitterContext', { bg = '#1e1e2e' }) -- Change hex to match your theme!
+
+-- Adds a distinct underline to the bottom of the sticky header
+vim.api.nvim_set_hl(0, 'TreesitterContextBottom', { underline = true, sp = 'Grey' })
+
+-- Matches the line numbers in the context to the same background
+vim.api.nvim_set_hl(0, 'TreesitterContextLineNumber', { bg = '#1e1e2e', fg = '#888888' })
