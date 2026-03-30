@@ -1,8 +1,6 @@
 return { -- Main LSP Configuration
   'neovim/nvim-lspconfig',
-  version = 'v0.1.8', -- Pins the plugin to the last stable version (Fixes Nvim 0.11 crashes)
   dependencies = {
-    { 'stevearc/conform.nvim', opts = {} }, -- Formatter
     {
       'folke/lazydev.nvim',
       ft = 'lua',
@@ -33,17 +31,6 @@ return { -- Main LSP Configuration
     },
   },
   config = function()
-    require('conform').setup {
-      formatters_by_ft = {
-        lua = { 'stylua' },
-        python = { 'isort', 'black' },
-        c = { 'clang-format' },
-        cpp = { 'clang-format' },
-      },
-      default_format_opts = { lsp_format = 'fallback' },
-      format_on_save = { lsp_format = 'fallback', timeout_ms = 3000 },
-    }
-
     -- ==============================================================================
     -- 🧠 LSP Keymaps & Autocommands
     -- ==============================================================================
@@ -55,8 +42,7 @@ return { -- Main LSP Configuration
           if type(desc) == 'string' then
             vim.keymap.set(effective_mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
           else
-            vim.keymap.set(effective_mode, keys, func, { buffer = event.buf, desc = 'LSP: Action (Desc Error)' })
-            print("Warning: Invalid 'desc' type passed to map for keys:", keys)
+            vim.keymap.set(effective_mode, keys, func, { buffer = event.buf, desc = 'LSP: Action' })
           end
         end
 
@@ -72,36 +58,23 @@ return { -- Main LSP Configuration
         map('K', vim.lsp.buf.hover, 'Hover Documentation')
 
         local client = vim.lsp.get_client_by_id(event.data.client_id)
-
-        -- Format keymap
-        if client and client:supports_method('textdocument/formatting', { bufnr = event.buf }) then
-          vim.keymap.set({ 'n', 'v' }, '<leader>f', function()
-            require('conform').format { async = true, lsp_format = 'fallback' }
-          end, { desc = 'format document (conform/lsp)', noremap = true, silent = true, buffer = event.buf })
+        if not client then
+          return
         end
 
-        -- Document Highlight autocommands
-        local function client_supports_method(client_instance, method, bufnr)
-          if not client_instance then
-            return false
-          end
-          if vim.fn.has 'nvim-0.11' == 1 then
-            return client_instance:supports_method(method, { bufnr = bufnr })
-          else
-            return client_instance.supports_method and client_instance.supports_method(method, { bufnr = bufnr })
-          end
-        end
-
-        if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
+        -- Document Highlight autocommands (Modern 0.11 supports_method call)
+        if client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight, { bufnr = event.buf }) then
           local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
-          vim.api.nvim_create_autocmd(
-            { 'CursorHold', 'CursorHoldI' },
-            { buffer = event.buf, group = highlight_augroup, callback = vim.lsp.buf.document_highlight }
-          )
-          vim.api.nvim_create_autocmd(
-            { 'CursorMoved', 'CursorMovedI' },
-            { buffer = event.buf, group = highlight_augroup, callback = vim.lsp.buf.clear_references }
-          )
+          vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+            buffer = event.buf,
+            group = highlight_augroup,
+            callback = vim.lsp.buf.document_highlight,
+          })
+          vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+            buffer = event.buf,
+            group = highlight_augroup,
+            callback = vim.lsp.buf.clear_references,
+          })
           vim.api.nvim_create_autocmd('LspDetach', {
             group = vim.api.nvim_create_augroup('kickstart-lsp-detach', { clear = true }),
             callback = function(event2)
@@ -111,10 +84,11 @@ return { -- Main LSP Configuration
           })
         end
 
-        -- Inlay hints
-        if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
+        -- Inlay hints (Modern 0.11 toggle API)
+        if client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint, { bufnr = event.buf }) then
           map('<leader>th', function()
-            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
+            local is_enabled = vim.lsp.inlay_hint.is_enabled { bufnr = event.buf }
+            vim.lsp.inlay_hint.enable(not is_enabled, { bufnr = event.buf })
           end, '[T]oggle Inlay [H]ints')
         end
       end,
@@ -145,18 +119,16 @@ return { -- Main LSP Configuration
     }
 
     -- ==============================================================================
-    -- 🐍 Dynamic Python Environment Resolvers (Optimized for `uv` on macOS)
+    -- 🐍 Dynamic Python Environment Resolvers
     -- ==============================================================================
     local function get_python_path()
       if vim.env.VIRTUAL_ENV then
         return vim.env.VIRTUAL_ENV .. '/bin/python'
       end
-      -- Fallback to local `.venv` typically created by `uv`
       local local_venv = vim.fn.getcwd() .. '/.venv/bin/python'
       if vim.fn.filereadable(local_venv) == 1 then
         return local_venv
       end
-      -- Default macOS Python path fallback
       return vim.fn.exepath 'python3' or vim.fn.exepath 'python' or 'python'
     end
 
@@ -164,12 +136,10 @@ return { -- Main LSP Configuration
       if vim.env.VIRTUAL_ENV then
         return vim.env.VIRTUAL_ENV .. '/bin/pylint'
       end
-      -- Prioritize local project pylint to solve import errors
       local local_pylint = vim.fn.getcwd() .. '/.venv/bin/pylint'
       if vim.fn.filereadable(local_pylint) == 1 then
         return local_pylint
       end
-      -- Fallback to global/Mason pylint
       return vim.fn.exepath 'pylint' or 'pylint'
     end
 
@@ -194,14 +164,8 @@ return { -- Main LSP Configuration
         settings = {
           pylsp = {
             plugins = {
-              jedi = {
-                environment = get_python_path(),
-                enabled = true,
-              },
-              pylint = {
-                enabled = true,
-                executable = get_pylint_path(),
-              },
+              jedi = { environment = get_python_path(), enabled = true },
+              pylint = { enabled = true, executable = get_pylint_path() },
               pyflakes = { enabled = true },
               pycodestyle = { enabled = false },
               autopep8 = { enabled = false },
@@ -251,9 +215,6 @@ return { -- Main LSP Configuration
     -- ==============================================================================
     -- 🏗️ Mason Installer Integration
     -- ==============================================================================
-    local ensure_installed_lsp = vim.tbl_keys(servers or {})
-
-    -- AUTO-INSTALL FORMATTERS AND LINTERS HERE
     local ensure_installed_others = {
       'stylua',
       'black',
@@ -261,33 +222,27 @@ return { -- Main LSP Configuration
       'clang-format',
       'pylint',
       'html',
+      'jq',
     }
 
-    local final_ensure_installed = {}
-    for _, tool in ipairs(ensure_installed_lsp) do
-      table.insert(final_ensure_installed, tool)
-    end
-    for _, tool in ipairs(ensure_installed_others) do
-      table.insert(final_ensure_installed, tool)
-    end
+    -- 0.11 Modern replacement for table merging
+    local final_ensure_installed = vim.iter({ vim.tbl_keys(servers), ensure_installed_others }):flatten():totable()
 
-    -- Clang diagnostic filter
-    local function filter_diagnostics(diagnostic)
-      if diagnostic.source == 'clang' then
-        return false
-      end
-      return true
-    end
-
+    -- 0.11 Modern diagnostic filtering (Replacing the deprecated vim.tbl_filter)
     vim.lsp.handlers['textDocument/publishDiagnostics'] = vim.lsp.with(function(_, result, ctx, config)
-      result.diagnostics = vim.tbl_filter(filter_diagnostics, result.diagnostics)
+      if result and result.diagnostics then
+        result.diagnostics = vim
+          .iter(result.diagnostics)
+          :filter(function(diagnostic)
+            return diagnostic.source ~= 'clang'
+          end)
+          :totable()
+      end
       vim.lsp.diagnostic.on_publish_diagnostics(_, result, ctx, config)
     end, {})
 
-    -- Setup Mason Tools
     require('mason-tool-installer').setup { ensure_installed = final_ensure_installed }
 
-    -- Setup Mason LSP Config
     require('mason-lspconfig').setup {
       automatic_enable = true,
       ensure_installed = {},
