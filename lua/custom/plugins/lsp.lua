@@ -160,21 +160,10 @@ return { -- Main LSP Configuration
       },
       clangd = {},
       html = {},
-      pylsp = {
-        settings = {
-          pylsp = {
-            plugins = {
-              jedi = { environment = get_python_path(), enabled = true },
-              pylint = { enabled = true, executable = get_pylint_path() },
-              pyflakes = { enabled = true },
-              pycodestyle = { enabled = false },
-              autopep8 = { enabled = false },
-              yapf = { enabled = false },
-              pyls_isort = { enabled = false },
-            },
-          },
-        },
-      },
+      pyright = {},
+      ruff = {},
+      bashls = {},
+      dockerls = {},
     }
 
     -- ==============================================================================
@@ -217,12 +206,11 @@ return { -- Main LSP Configuration
     -- ==============================================================================
     local ensure_installed_others = {
       'stylua',
-      'black',
-      'isort',
       'clang-format',
-      'pylint',
-      'html',
       'jq',
+      'shfmt',
+      'shellcheck',
+      'hadolint',
     }
 
     -- 0.11 Modern replacement for table merging

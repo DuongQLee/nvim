@@ -15,11 +15,13 @@ return {
   opts = {
     formatters_by_ft = {
       lua = { 'stylua' },
-      python = { 'isort', 'black' },
+      python = { 'ruff_fix', 'ruff_format' },
       c = { 'clang-format' },
       cpp = { 'clang-format' },
       json = { 'jq' },
       jsonc = { 'jq' },
+      sh = { 'shfmt' },
+      bash = { 'shfmt' },
     },
     default_format_opts = { lsp_format = 'fallback' },
     format_on_save = {
