@@ -228,7 +228,7 @@ return { -- Main LSP Configuration
     -- 0.11 Modern replacement for table merging
     local final_ensure_installed = vim.iter({ vim.tbl_keys(servers), ensure_installed_others }):flatten():totable()
 
-    -- 0.11 Modern diagnostic filtering (Replacing the deprecated vim.tbl_filter)
+    -- 0.11 Modern diagnostic filtering
     vim.lsp.handlers['textDocument/publishDiagnostics'] = vim.lsp.with(function(_, result, ctx, config)
       if result and result.diagnostics then
         result.diagnostics = vim
@@ -251,7 +251,19 @@ return { -- Main LSP Configuration
         function(server_name)
           local server_opts = servers[server_name] or {}
           server_opts.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server_opts.capabilities or {})
-          require('lspconfig')[server_name].setup(server_opts)
+
+          -- CRITICAL FIX: Neovim 0.11 deprecation bypass
+          if vim.fn.has 'nvim-0.11' == 1 then
+            require 'lspconfig' -- Ensure lspconfig data is loaded into Neovim
+            local default_config = vim.lsp.config[server_name] or {}
+            -- Combine our custom settings with the defaults
+            vim.lsp.config[server_name] = vim.tbl_deep_extend('force', default_config, server_opts)
+            -- Use the new 0.11 native enable function instead of the old setup()
+            vim.lsp.enable(server_name)
+          else
+            -- Fallback for older Neovim versions
+            require('lspconfig')[server_name].setup(server_opts)
+          end
         end,
       },
     }
