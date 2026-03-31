@@ -1,10 +1,27 @@
--- In your plugins configuration (e.g., lua/plugins/copilot.lua)
 return {
-  'github/copilot.vim',
-  -- Optionally configure keymaps or settings here or later
-  --   -- Example: Disable default Tab mapping and set custom accept key
+  'zbirenbaum/copilot.lua',
+  cmd = 'Copilot',
+  event = 'InsertEnter',
   config = function()
-    vim.g.copilot_no_tab_map = true
-    vim.keymap.set('i', '<C-q>', 'copilot#Accept("<CR>")', { expr = true, replace_keycodes = false, silent = true })
+    require('copilot').setup {
+      -- This handles the inline ghost text
+      suggestion = {
+        enabled = true,
+        auto_trigger = true,
+        debounce = 75,
+        keymap = {
+          -- Changed to <C-l> (Ctrl+L) to avoid terminal freezing issues with <C-q>
+          accept = '<C-l>',
+          accept_word = false,
+          accept_line = false,
+          next = '<M-]>',
+          prev = '<M-[>',
+          dismiss = '<C-]>',
+        },
+      },
+      panel = {
+        enabled = false, -- Disable the panel if you only want inline suggestions
+      },
+    }
   end,
 }
