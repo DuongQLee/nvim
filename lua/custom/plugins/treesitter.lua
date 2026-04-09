@@ -4,67 +4,62 @@ return {
   -- =====================================================================
   {
     'nvim-treesitter/nvim-treesitter',
-    branch = 'master',
+    branch = 'main', -- 👇 MUST be main for Neovim 0.12
+    lazy = false, -- 👇 CRITICAL: The new plugin does not support lazy-loading
     build = ':TSUpdate',
     dependencies = {
       {
         'nvim-treesitter/nvim-treesitter-textobjects',
-        branch = 'main',
+        branch = 'main', -- 👇 MUST be main
         init = function()
           vim.g.no_plugin_maps = true
         end,
       },
     },
-    opts = {
-      incremental_selection = {
-        enable = true,
-        keymaps = {
-          init_selection = '<C-space>', -- Start selection
-          node_incremental = '<C-space>', -- Expand to next outer node
-          scope_incremental = false, -- (Rarely used) Expand to next scope
-          node_decremental = '<bs>', -- Shrink selection
-        },
-      },
-      ensure_installed = { 'bash', 'c', 'cpp', 'python', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
-      auto_install = true,
-      highlight = { enable = true, additional_vim_regex_highlighting = { 'ruby' } },
-      indent = { enable = true, disable = { 'ruby' } },
-    },
-    config = function(_, opts)
-      require('nvim-treesitter.configs').setup(opts)
+    config = function()
+      -- 1. Install Parsers programmatically
+      -- The new nvim-treesitter API natively acts as a no-op for already-installed parsers.
+      require('nvim-treesitter').install {
+        'bash',
+        'c',
+        'cpp',
+        'python',
+        'diff',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+      }
 
-      -- Initialize textobjects
+      -- 2. Natively enable Highlight & Indent per filetype
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('TreesitterSetup', { clear = true }),
+        callback = function(event)
+          -- Highlighting
+          pcall(vim.treesitter.start, event.buf)
+          -- Indentation
+          vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end,
+      })
+
+      -- 3. Incremental selection (Neovim 0.12 natively handles this now!)
+      vim.keymap.set({ 'n', 'v' }, '<C-space>', 'v_an', { remap = true, desc = 'Start/expand TS selection' })
+      vim.keymap.set('v', '<bs>', 'v_[n', { remap = true, desc = 'Shrink TS selection' })
+
+      -- 4. Initialize textobjects
       require('nvim-treesitter-textobjects').setup {
         select = {
           lookahead = true,
           selection_modes = { ['@function.outer'] = 'V', ['@class.outer'] = 'V' },
-          -- 👇 CHANGED: Prevents swallowing adjacent blank lines during visual selection
           include_surrounding_whitespace = false,
-        },
-        -- ITEM 3: JUMPING BETWEEN FUNCTIONS
-        move = {
-          enable = true,
-          set_jumps = true, -- Adds jumps to the jumplist so you can use Ctrl-o to go back
-          goto_next_start = {
-            [']m'] = { query = '@function.outer', desc = 'Next function start' },
-            [']]'] = { query = '@class.outer', desc = 'Next class start' },
-          },
-          goto_next_end = {
-            [']M'] = { query = '@function.outer', desc = 'Next function end' },
-            [']['] = { query = '@class.outer', desc = 'Next class end' },
-          },
-          goto_previous_start = {
-            ['[m'] = { query = '@function.outer', desc = 'Previous function start' },
-            ['[['] = { query = '@class.outer', desc = 'Previous class start' },
-          },
-          goto_previous_end = {
-            ['[M'] = { query = '@function.outer', desc = 'Previous function end' },
-            ['[]'] = { query = '@class.outer', desc = 'Previous class end' },
-          },
         },
       }
 
-      -- Manual keymaps for selection (vaf, vif, etc.)
+      -- 5. Manual Selection Keymaps
       local ts_select = require 'nvim-treesitter-textobjects.select'
       vim.keymap.set({ 'x', 'o' }, 'af', function()
         ts_select.select_textobject('@function.outer', 'textobjects')
@@ -78,6 +73,33 @@ return {
       vim.keymap.set({ 'x', 'o' }, 'ic', function()
         ts_select.select_textobject('@class.inner', 'textobjects')
       end, { desc = 'Select inner part of a class' })
+
+      -- 6. Manual Movement Keymaps
+      local ts_move = require 'nvim-treesitter-textobjects.move'
+      vim.keymap.set({ 'n', 'x', 'o' }, ']m', function()
+        ts_move.goto_next_start('@function.outer', 'textobjects')
+      end, { desc = 'Next function start' })
+      vim.keymap.set({ 'n', 'x', 'o' }, ']]', function()
+        ts_move.goto_next_start('@class.outer', 'textobjects')
+      end, { desc = 'Next class start' })
+      vim.keymap.set({ 'n', 'x', 'o' }, ']M', function()
+        ts_move.goto_next_end('@function.outer', 'textobjects')
+      end, { desc = 'Next function end' })
+      vim.keymap.set({ 'n', 'x', 'o' }, '][', function()
+        ts_move.goto_next_end('@class.outer', 'textobjects')
+      end, { desc = 'Next class end' })
+      vim.keymap.set({ 'n', 'x', 'o' }, '[m', function()
+        ts_move.goto_previous_start('@function.outer', 'textobjects')
+      end, { desc = 'Previous function start' })
+      vim.keymap.set({ 'n', 'x', 'o' }, '[[', function()
+        ts_move.goto_previous_start('@class.outer', 'textobjects')
+      end, { desc = 'Previous class start' })
+      vim.keymap.set({ 'n', 'x', 'o' }, '[M', function()
+        ts_move.goto_previous_end('@function.outer', 'textobjects')
+      end, { desc = 'Previous function end' })
+      vim.keymap.set({ 'n', 'x', 'o' }, '[]', function()
+        ts_move.goto_previous_end('@class.outer', 'textobjects')
+      end, { desc = 'Previous class end' })
     end,
   },
 
@@ -88,9 +110,9 @@ return {
     'nvim-treesitter/nvim-treesitter-context',
     dependencies = { 'nvim-treesitter/nvim-treesitter' },
     opts = {
-      max_lines = 3, -- Limits the sticky header to 3 lines so it doesn't hog the screen
+      max_lines = 3,
       trim_scope = 'outer',
-      mode = 'cursor', -- Line used to calculate context. Choices: 'cursor', 'topline'
+      mode = 'cursor',
     },
   },
 
@@ -120,6 +142,6 @@ return {
   {
     'windwp/nvim-ts-autotag',
     dependencies = { 'nvim-treesitter/nvim-treesitter' },
-    opts = {}, -- This enables it
+    opts = {},
   },
 }
