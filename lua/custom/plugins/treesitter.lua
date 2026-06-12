@@ -18,7 +18,6 @@ return {
     },
     config = function()
       -- 1. Install Parsers programmatically
-      -- The new nvim-treesitter API natively acts as a no-op for already-installed parsers.
       require('nvim-treesitter').install {
         'bash',
         'c',
@@ -30,6 +29,7 @@ return {
         'luadoc',
         'markdown',
         'markdown_inline',
+        'latex', -- 👈 REQUIRED by render-markdown for math
         'query',
         'vim',
         'vimdoc',
@@ -39,14 +39,12 @@ return {
       vim.api.nvim_create_autocmd('FileType', {
         group = vim.api.nvim_create_augroup('TreesitterSetup', { clear = true }),
         callback = function(event)
-          -- Highlighting
           pcall(vim.treesitter.start, event.buf)
-          -- Indentation
           vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
         end,
       })
 
-      -- 3. Incremental selection (Neovim 0.12 natively handles this now!)
+      -- 3. Incremental selection
       vim.keymap.set({ 'n', 'v' }, '<C-space>', 'v_an', { remap = true, desc = 'Start/expand TS selection' })
       vim.keymap.set('v', '<bs>', 'v_[n', { remap = true, desc = 'Shrink TS selection' })
 
@@ -122,16 +120,12 @@ return {
   {
     'JoosepAlviste/nvim-ts-context-commentstring',
     lazy = true,
-    opts = {
-      enable_autocmd = false,
-    },
+    opts = { enable_autocmd = false },
     init = function()
-      -- Required for lazy loading to work correctly with this plugin
       vim.g.skip_ts_context_commentstring_module = true
     end,
     config = function(_, opts)
       require('ts_context_commentstring').setup(opts)
-      -- Hook it into Neovim 0.10+ native commenting (gc)
       local get_option = vim.filetype.get_option
       vim.filetype.get_option = function(filetype, option)
         return option == 'commentstring' and require('ts_context_commentstring.internal').calculate_commentstring() or get_option(filetype, option)
@@ -139,9 +133,51 @@ return {
     end,
   },
 
+  -- =====================================================================
+  -- 4. AUTO TAGGING
+  -- =====================================================================
   {
     'windwp/nvim-ts-autotag',
     dependencies = { 'nvim-treesitter/nvim-treesitter' },
     opts = {},
+  },
+
+  -- =====================================================================
+  -- 5. RENDER MARKDOWN & LATEX
+  -- =====================================================================
+  -- =====================================================================
+  -- 5. RENDER MARKDOWN & LATEX
+  -- =====================================================================
+  {
+    'MeanderingProgrammer/render-markdown.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' },
+    opts = {
+      file_types = { 'markdown', 'python' },
+
+      -- 👇 FIX: Force the plugin to wake up and re-render on these events
+      change_events = { 'InsertLeave', 'TextChanged' },
+
+      -- 👇 OPTIONAL: If you hated the "Anti-Conceal" behavior mentioned in step 1,
+      -- uncomment the block below to disable it.
+      -- anti_conceal = {
+      --   enabled = false,
+      -- },
+
+      latex = {
+        enabled = true,
+        converter = { 'latex2text' },
+      },
+      injections = {
+        python = {
+          enabled = true,
+          query = [[
+            ((expression_statement
+              (string
+                (string_content) @injection.content))
+             (#set! injection.language "markdown"))
+          ]],
+        },
+      },
+    },
   },
 }

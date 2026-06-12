@@ -4,6 +4,10 @@ return {
   event = 'InsertEnter',
   config = function()
     require('copilot').setup {
+      -- Explicitly enable Copilot for Markdown files
+      filetypes = {
+        markdown = true,
+      },
       -- This handles the inline ghost text
       suggestion = {
         enabled = true,
