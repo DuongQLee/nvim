@@ -121,6 +121,18 @@ map({ 'n', 'v' }, '<leader>d', '"_d', { desc = 'Delete to void register' })
 map({ 'n', 'v' }, '<C-y>', [["+y]], { desc = 'Yank to system clipboard' })
 map('n', '<C-Y>', [["+Y]], { desc = 'Yank line to system clipboard' })
 
+vim.g.clipboard = {
+  name = 'OSC 52',
+  copy = {
+    ['+'] = require('vim.ui.clipboard.osc52').copy '+',
+    ['*'] = require('vim.ui.clipboard.osc52').copy '*',
+  },
+  paste = {
+    ['+'] = require('vim.ui.clipboard.osc52').paste '+',
+    ['*'] = require('vim.ui.clipboard.osc52').paste '*',
+  },
+}
+
 -- Global Search & Replace
 map('n', '<leader>s', [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], { desc = 'Search and replace word under cursor' })
 
