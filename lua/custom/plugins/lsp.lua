@@ -211,6 +211,9 @@ return { -- Main LSP Configuration
       'shfmt',
       'shellcheck',
       'hadolint',
+      'tree-sitter-cli', -- 👈 required by nvim-treesitter `main` branch to compile parsers
+      'ripgrep', -- 👈 Telescope live-grep
+      'fd', -- 👈 Telescope file finding (extended)
     }
 
     -- 0.11 Modern replacement for table merging
