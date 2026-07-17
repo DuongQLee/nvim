@@ -1,9 +1,9 @@
 return {
-  "nvim-tree/nvim-tree.lua",
-  version = "*",                   -- Pin to a specific version if desired, or use "*" for latest
-  lazy = false,                    -- Load nvim-tree on startup, or set to true and trigger on an event/command
+  'nvim-tree/nvim-tree.lua',
+  version = '*', -- Pin to a specific version if desired, or use "*" for latest
+  lazy = false, -- Load nvim-tree on startup, or set to true and trigger on an event/command
   dependencies = {
-    "nvim-tree/nvim-web-devicons", -- Optional, for file icons
+    'nvim-tree/nvim-web-devicons', -- Optional, for file icons
   },
   config = function()
     -- Disable netrw completely if you only want to use nvim-tree
@@ -14,11 +14,11 @@ return {
     -- This is important for nvim-web-devicons to work correctly
     -- vim.cmd([[highlight NvimTreeFolderIcon guibg=NONE]]) -- Example, adjust as needed
 
-    local nvimtree = require("nvim-tree")
-    local api = require("nvim-tree.api")
+    local nvimtree = require 'nvim-tree'
+    local api = require 'nvim-tree.api'
     -- Basic setup
-    nvimtree.setup({
-      on_attach = "default",
+    nvimtree.setup {
+      on_attach = 'default',
       hijack_cursor = false,
       auto_reload_on_write = true,
       disable_netrw = false,
@@ -31,7 +31,7 @@ return {
       respect_buf_cwd = false,
       select_prompts = false,
       sort = {
-        sorter = "name",
+        sorter = 'name',
         folders_first = true,
         files_first = false,
       },
@@ -40,11 +40,11 @@ return {
         centralize_selection = true,
         cursorline = true,
         debounce_delay = 15,
-        side = "right",
+        side = 'right',
         preserve_window_proportions = false,
         number = false,
         relativenumber = false,
-        signcolumn = "yes",
+        signcolumn = 'yes',
         -- width = 100,
         -- float = {
         --   enable = false,
@@ -63,28 +63,28 @@ return {
         add_trailing = false,
         group_empty = false,
         full_name = false,
-        root_folder_label = ":~:s?$?/..?",
+        root_folder_label = ':~:s?$?/..?',
         indent_width = 2,
-        special_files = { "Cargo.toml", "Makefile", "README.md", "readme.md" },
-        hidden_display = "none",
+        special_files = { 'Cargo.toml', 'Makefile', 'README.md', 'readme.md' },
+        hidden_display = 'none',
         symlink_destination = true,
-        decorators = { "Git", "Open", "Hidden", "Modified", "Bookmark", "Diagnostics", "Copied", "Cut", },
-        highlight_git = "none",
-        highlight_diagnostics = "none",
-        highlight_opened_files = "none",
-        highlight_modified = "none",
-        highlight_hidden = "none",
-        highlight_bookmarks = "none",
-        highlight_clipboard = "name",
+        decorators = { 'Git', 'Open', 'Hidden', 'Modified', 'Bookmark', 'Diagnostics', 'Copied', 'Cut' },
+        highlight_git = 'none',
+        highlight_diagnostics = 'none',
+        highlight_opened_files = 'none',
+        highlight_modified = 'none',
+        highlight_hidden = 'none',
+        highlight_bookmarks = 'none',
+        highlight_clipboard = 'name',
         indent_markers = {
           enable = false,
           inline_arrows = true,
           icons = {
-            corner = "└",
-            edge = "│",
-            item = "│",
-            bottom = "─",
-            none = " ",
+            corner = '└',
+            edge = '│',
+            item = '│',
+            bottom = '─',
+            none = ' ',
           },
         },
         icons = {
@@ -98,47 +98,47 @@ return {
               color = true,
             },
           },
-          git_placement = "before",
-          modified_placement = "after",
-          hidden_placement = "after",
-          diagnostics_placement = "signcolumn",
-          bookmarks_placement = "signcolumn",
-          padding = " ",
-          symlink_arrow = " ➛ ",
+          git_placement = 'before',
+          modified_placement = 'after',
+          hidden_placement = 'after',
+          diagnostics_placement = 'signcolumn',
+          bookmarks_placement = 'signcolumn',
+          padding = ' ',
+          symlink_arrow = ' ➛ ',
           show = {
             file = true,
             folder = true,
             folder_arrow = true,
             git = true,
             modified = true,
-            hidden = false,
+            hidden = true,
             diagnostics = true,
             bookmarks = true,
           },
           glyphs = {
-            default = "",
-            symlink = "",
-            bookmark = "󰆤",
-            modified = "●",
-            hidden = "󰜌",
+            default = '',
+            symlink = '',
+            bookmark = '󰆤',
+            modified = '●',
+            hidden = '󰜌',
             folder = {
-              arrow_closed = "",
-              arrow_open = "",
-              default = "",
-              open = "",
-              empty = "",
-              empty_open = "",
-              symlink = "",
-              symlink_open = "",
+              arrow_closed = '',
+              arrow_open = '',
+              default = '',
+              open = '',
+              empty = '',
+              empty_open = '',
+              symlink = '',
+              symlink_open = '',
             },
             git = {
-              unstaged = "✗",
-              staged = "✓",
-              unmerged = "",
-              renamed = "➜",
-              untracked = "★",
-              deleted = "",
-              ignored = "◌",
+              unstaged = '✗',
+              staged = '✓',
+              unmerged = '',
+              renamed = '➜',
+              untracked = '★',
+              deleted = '',
+              ignored = '◌',
             },
           },
         },
@@ -154,10 +154,6 @@ return {
           ignore_list = {},
         },
         exclude = false,
-      },
-      system_open = {
-        cmd = "",
-        args = {},
       },
       git = {
         enable = true,
@@ -177,10 +173,10 @@ return {
           max = vim.diagnostic.severity.ERROR,
         },
         icons = {
-          hint = "",
-          info = "",
-          warning = "",
-          error = "",
+          hint = '',
+          info = '',
+          warning = '',
+          error = '',
         },
       },
       modified = {
@@ -191,7 +187,7 @@ return {
       filters = {
         enable = true,
         git_ignored = true,
-        dotfiles = false,
+        dotfiles = true,
         git_clean = false,
         no_buffer = false,
         no_bookmark = false,
@@ -199,17 +195,17 @@ return {
         exclude = {},
       },
       live_filter = {
-        prefix = "[FILTER]: ",
+        prefix = '[FILTER]: ',
         always_show_folders = true,
       },
       filesystem_watchers = {
         enable = true,
         debounce_delay = 50,
         ignore_dirs = {
-          "/.ccls-cache",
-          "/build",
-          "/node_modules",
-          "/target",
+          '/.ccls-cache',
+          '/build',
+          '/node_modules',
+          '/target',
         },
       },
       actions = {
@@ -227,9 +223,9 @@ return {
           open_win_config = {
             col = 1,
             row = 1,
-            relative = "cursor",
-            border = "shadow",
-            style = "minimal",
+            relative = 'cursor',
+            border = 'shadow',
+            style = 'minimal',
           },
         },
         open_file = {
@@ -239,11 +235,11 @@ return {
           relative_path = true,
           window_picker = {
             enable = true,
-            picker = "default",
-            chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+            picker = 'default',
+            chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890',
             exclude = {
-              filetype = { "notify", "packer", "qf", "diff", "fugitive", "fugitiveblame" },
-              buftype = { "nofile", "terminal", "help" },
+              filetype = { 'notify', 'packer', 'qf', 'diff', 'fugitive', 'fugitiveblame' },
+              buftype = { 'nofile', 'terminal', 'help' },
             },
           },
         },
@@ -252,7 +248,7 @@ return {
         },
       },
       trash = {
-        cmd = "gio trash",
+        cmd = 'gio trash',
       },
       tab = {
         sync = {
@@ -266,7 +262,7 @@ return {
         absolute_path = true,
       },
       help = {
-        sort_by = "key",
+        sort_by = 'key',
       },
       ui = {
         confirm = {
@@ -275,8 +271,7 @@ return {
           default_yes = false,
         },
       },
-      experimental = {
-      },
+      experimental = {},
       log = {
         enable = false,
         truncate = false,
@@ -291,7 +286,7 @@ return {
           watcher = false,
         },
       },
-    })
+    }
 
     -- Keymap to toggle nvim-tree
     -- Set leader key if not already set (usually space)
@@ -302,8 +297,8 @@ return {
     local opts = { noremap = true, silent = true }
 
     -- Toggle nvim-tree
-    keymap("n", "\\", function()
-      api.tree.toggle({ focus = true, find_file = true, })
+    keymap('n', '\\', function()
+      api.tree.toggle { focus = true, find_file = true }
     end, opts)
 
     -- -- Focus nvim-tree (if open)

@@ -5,6 +5,14 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 vim.g.have_nerd_font = true
 
+-- Disable unused language providers (silences :checkhealth vim.provider warnings).
+-- No remaining plugin uses node/python/perl/ruby remote plugins (molten was removed).
+-- Re-enable a line (and install its host) if you add a plugin that needs it.
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_node_provider = 0
+vim.g.loaded_python3_provider = 0
+
 -- ==============================================================================
 -- 2. CORE OPTIONS
 -- ==============================================================================
@@ -144,7 +152,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.highlight.on_yank()
+    vim.hl.on_yank()
   end,
 })
 
@@ -211,30 +219,6 @@ require('lazy').setup({
     config = function()
       require('tokyonight').setup { styles = { comments = { italic = false } } }
       vim.cmd.colorscheme 'tokyonight-night'
-    end,
-  },
-
-  {
-    'benlubas/molten-nvim',
-    version = '*',
-    dependencies = { 'nvim-lua/plenary.nvim' },
-    build = ':UpdateRemotePlugins',
-    init = function()
-      vim.g.molten_virt_text_output = true
-      vim.g.molten_virt_lines_output = false
-      vim.g.molten_output_win_max_height = 15
-      vim.g.molten_image_provider = 'kitty'
-    end,
-    config = function()
-      local m = vim.keymap.set
-      m('n', '<localleader>mi', ':MoltenInit<CR>', { silent = true, desc = 'Molten: Init' })
-      m('n', '<localleader>e', ':MoltenEvaluateOperator<CR>', { silent = true, desc = 'Molten: Evaluate operator' })
-      m('n', '<localleader>rl', ':MoltenEvaluateLine<CR>', { silent = true, desc = 'Molten: Evaluate line' })
-      m('n', '<localleader>rr', ':MoltenReevaluateCell<CR>', { silent = true, desc = 'Molten: Re-evaluate cell' })
-      m('v', '<localleader>r', ':<C-u>MoltenEvaluateVisual<CR>gv', { silent = true, desc = 'Molten: Evaluate visual' })
-      m('n', '<localleader>rd', ':MoltenDelete<CR>', { silent = true, desc = 'Molten: Delete cell' })
-      m('n', '<localleader>oh', ':MoltenHideOutput<CR>', { silent = true, desc = 'Molten: Hide output' })
-      m('n', '<localleader>os', ':noautocmd MoltenEnterOutput<CR>', { silent = true, desc = 'Molten: Show output' })
     end,
   },
 

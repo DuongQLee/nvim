@@ -12,8 +12,8 @@ return { -- Main LSP Configuration
       },
     },
     -- Mason setup
-    { 'williamboman/mason.nvim', opts = {} },
-    'williamboman/mason-lspconfig.nvim',
+    { 'mason-org/mason.nvim', opts = {} },
+    'mason-org/mason-lspconfig.nvim',
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     -- Fidget status updates
     { 'j-hui/fidget.nvim', opts = {} },
@@ -216,44 +216,35 @@ return { -- Main LSP Configuration
     -- 0.11 Modern replacement for table merging
     local final_ensure_installed = vim.iter({ vim.tbl_keys(servers), ensure_installed_others }):flatten():totable()
 
-    -- 0.11 Modern diagnostic filtering
-    vim.lsp.handlers['textDocument/publishDiagnostics'] = vim.lsp.with(function(_, result, ctx, config)
-      if result and result.diagnostics then
-        result.diagnostics = vim
-          .iter(result.diagnostics)
+    -- 0.12 Modern diagnostic filtering.
+    -- vim.lsp.with() and vim.lsp.diagnostic.on_publish_diagnostics() were removed in
+    -- Nvim 0.12, so filter raw 'clang' compiler diagnostics at the vim.diagnostic layer.
+    local orig_diagnostic_set = vim.diagnostic.set
+    vim.diagnostic.set = function(namespace, bufnr, diagnostics, opts)
+      if diagnostics then
+        diagnostics = vim
+          .iter(diagnostics)
           :filter(function(diagnostic)
             return diagnostic.source ~= 'clang'
           end)
           :totable()
       end
-      vim.lsp.diagnostic.on_publish_diagnostics(_, result, ctx, config)
-    end, {})
+      return orig_diagnostic_set(namespace, bufnr, diagnostics, opts)
+    end
 
     require('mason-tool-installer').setup { ensure_installed = final_ensure_installed }
 
-    require('mason-lspconfig').setup {
-      automatic_enable = true,
-      ensure_installed = {},
-      automatic_installation = false,
-      handlers = {
-        function(server_name)
-          local server_opts = servers[server_name] or {}
-          server_opts.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server_opts.capabilities or {})
+    -- mason-lspconfig v2 removed the `handlers` field and `automatic_installation`.
+    -- Configure servers directly through the native vim.lsp.config API, then let
+    -- `automatic_enable` run vim.lsp.enable() for every installed server.
+    vim.lsp.config('*', { capabilities = capabilities })
+    for server_name, server_opts in pairs(servers) do
+      vim.lsp.config(server_name, server_opts)
+    end
 
-          -- CRITICAL FIX: Neovim 0.11 deprecation bypass
-          if vim.fn.has 'nvim-0.11' == 1 then
-            require 'lspconfig' -- Ensure lspconfig data is loaded into Neovim
-            local default_config = vim.lsp.config[server_name] or {}
-            -- Combine our custom settings with the defaults
-            vim.lsp.config[server_name] = vim.tbl_deep_extend('force', default_config, server_opts)
-            -- Use the new 0.11 native enable function instead of the old setup()
-            vim.lsp.enable(server_name)
-          else
-            -- Fallback for older Neovim versions
-            require('lspconfig')[server_name].setup(server_opts)
-          end
-        end,
-      },
+    require('mason-lspconfig').setup {
+      ensure_installed = {},
+      automatic_enable = true,
     }
   end,
 }

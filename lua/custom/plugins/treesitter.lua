@@ -30,6 +30,8 @@ return {
         'markdown',
         'markdown_inline',
         'latex', -- 👈 REQUIRED by render-markdown for math
+        'yaml', -- 👈 render-markdown checks for this parser
+        'regex', -- 👈 noice uses this for cmdline highlighting
         'query',
         'vim',
         'vimdoc',
@@ -163,9 +165,10 @@ return {
       --   enabled = false,
       -- },
 
+      -- Disabled: the `latex2text` converter (pylatexenc) isn't installed. Re-enable
+      -- after `pip install pylatexenc` if you want rendered markdown math.
       latex = {
-        enabled = true,
-        converter = { 'latex2text' },
+        enabled = false,
       },
       injections = {
         python = {
